@@ -2,6 +2,7 @@ import functions_framework
 import requests
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import hashlib
 import dateutil.parser
 import time
@@ -11,7 +12,7 @@ from secret import Secrets
 from google.cloud import bigquery
 
 
-logger = logging.getLogger("root")
+logging.basicConfig()
 
 
 def get_my_jpy():
@@ -45,7 +46,7 @@ def subscribe(cloud_event):
     # 買い付け余力を確認
     jpy = get_my_jpy()
     if jpy < 100000:
-        logger.warning("low jpy: " + str(jpy))
+        logging.warning("low jpy: " + str(jpy))
         return 
 
     public_api_endpoint = "https://api.coin.z.com/public"
@@ -54,20 +55,20 @@ def subscribe(cloud_event):
     response = requests.get(public_api_endpoint + trades_path)
     json_resp = response.json()
     if response.status_code != 200 or json_resp.get("data", None) is None:
-        logger.error(response.status_code)
-        logger.error(response.text)
+        logging.error(response.status_code)
+        logging.error(response.text)
         return
     
     trades_log = json_resp["data"].get("list", None)
     if trades_log is None:
-        logger.error("response 'list' is None")
-        logger.error(response.text)
+        logging.error("response 'list' is None")
+        logging.error(response.text)
         return
 
     is_buy_result = is_buy(trades_log)
-    logger.info(is_buy_result)
+    logging.info(is_buy_result)
 
-    send_bq(datetime.now(), trades_log[0]["price"], is_buy_result)
+    send_bq(datetime.now(tz=ZoneInfo("Asia/Tokyo")), trades_log[0]["price"], is_buy_result)
     pass
 
 
@@ -83,14 +84,14 @@ def send_bq(time, price, buy):
     errors = client.insert_rows(table, rows_to_insert)
 
     if errors == []:
-        logger.info("New rows have been added.")
+        logging.info("New rows have been added.")
     else:
-        logger.error(errors)
+        logging.error(errors)
 
 
 def is_buy(trades_log:list):
     if len(trades_log) < 90:
-        logger.info("trades_log size error:" + len(trades_log))
+        logging.info("trades_log size error:" + len(trades_log))
         return False
     
     latest = trades_log[0]
@@ -112,7 +113,7 @@ def is_buy(trades_log:list):
     time_diff_sec = time_diff.total_seconds()
     price_diff = float(latest["price"]) - float(price_carry)
 
-    logger.info(f"time_diff: ${time_diff_sec}, price_diff: ${price_diff}")
+    logging.info(f"time_diff: ${time_diff_sec}, price_diff: ${price_diff}")
 
     if cnt < 5 or time_diff_sec < 10.0:
         return False
