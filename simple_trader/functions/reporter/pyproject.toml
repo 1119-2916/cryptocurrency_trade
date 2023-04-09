@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "reporter"
+version = "0.1.0"
+description = ""
+authors = ["1119-2916 <ti11192916@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+google-cloud-bigquery = "^3.9.0"
+datetime = "^5.1"
+functions-framework = "^3.3.0"
+matplotlib = "^3.7.1"
+discordwebhook = "^1.0.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
